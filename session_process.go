@@ -135,6 +135,7 @@ func (m *SessionManager) launch(bin string, wait bool, args ...string) bool {
 }
 
 func (m *SessionManager) AllowSessionDaemonRun() bool {
+	return true
 	return m.allowSessionDaemonRun
 }
 

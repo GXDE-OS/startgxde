@@ -56,6 +56,7 @@ const (
 	gSchemaLauncher        = "com.deepin.dde.launcher"
 	gKeyAppsUseProxy       = "apps-use-proxy"
 	gKeyAppsDisableScaling = "apps-disable-scaling"
+	gKeyAppsNoSandbox      = "apps-no-sandbox"
 
 	KeyXGnomeAutostartDelay = "X-GNOME-Autostart-Delay"
 	KeyXDeepinCreatedBy     = "X-Deepin-CreatedBy"
@@ -78,6 +79,7 @@ type StartManager struct {
 	settings           *gio.Settings
 	appsUseProxy       strv.Strv
 	appsDisableScaling strv.Strv
+	appsNoSandbox      strv.Strv
 	mu                 sync.Mutex
 
 	launchedHooks []string
@@ -118,6 +120,7 @@ func newStartManager(conn *x.Conn) *StartManager {
 
 	m.appsUseProxy = strv.Strv(m.settings.GetStrv(gKeyAppsUseProxy))
 	m.appsDisableScaling = strv.Strv(m.settings.GetStrv(gKeyAppsDisableScaling))
+	m.appsNoSandbox = strv.Strv(m.settings.GetStrv(gKeyAppsNoSandbox))
 
 	gsettings.ConnectChanged(gSchemaLauncher, "*", func(key string) {
 		switch key {
@@ -128,6 +131,10 @@ func newStartManager(conn *x.Conn) *StartManager {
 		case gKeyAppsDisableScaling:
 			m.mu.Lock()
 			m.appsDisableScaling = strv.Strv(m.settings.GetStrv(key))
+			m.mu.Unlock()
+		case gKeyAppsNoSandbox:
+			m.mu.Lock()
+			m.appsNoSandbox = strv.Strv(m.settings.GetStrv(key))
 			m.mu.Unlock()
 		default:
 			return
@@ -371,6 +378,16 @@ func (m *StartManager) getAppIdByFilePath(file string) string {
 	return getAppIdByFilePath(file, m.appsDir)
 }
 
+func (m *StartManager) shouldNoSandbox(id string) bool {
+	m.mu.Lock()
+	if !m.appsNoSandbox.Contains(id) {
+		m.mu.Unlock()
+		return false
+	}
+	m.mu.Unlock()
+	return true
+}
+
 func (m *StartManager) shouldUseProxy(id string) bool {
 	m.mu.Lock()
 	if !m.appsUseProxy.Contains(id) {
@@ -459,6 +476,10 @@ func (m *StartManager) launch(appInfo *desktopappinfo.DesktopAppInfo, timestamp 
 			logger.Debug("launch: disable scaling")
 			cmdPrefixes = append(cmdPrefixes, "/usr/bin/env", "GDK_SCALE=1",
 				"QT_SCALE_FACTOR=1")
+		}
+		if m.shouldNoSandbox(appId) {
+			logger.Debug("launch: disable sandbox")
+			cmdPrefixes = append(cmdPrefixes, "--no-sandbox")
 		}
 	}
 

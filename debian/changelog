@@ -1,4 +1,4 @@
-startgxde (4.0.4) UNRELEASED; urgency=medium
+startgxde (4.0.5) UNRELEASED; urgency=medium
 
   * 修复控制中心切换启用/禁用特效后重启会丢失设置的问题
   * fix: 修复缩放立即生效的问题 
@@ -20,8 +20,9 @@ startgxde (4.0.4) UNRELEASED; urgency=medium
   * 调整 Conflicts 版本号
   * 使用 deepin-kwinrc 而非 kwinrc
   * dde-kwin -> gxde-wm-shim
+  * 支持设置 --no-sandbox
 
- -- gfdgd_xi <3025613752@qq.com>  Sun, 15 Jun 2025 09:53:59 +0800
+ -- gfdgd_xi <3025613752@qq.com>  Sun, 02 Nov 2025 15:26:04 +0800
 
 startgxde (3.18) unstable; urgency=low
 
