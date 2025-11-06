@@ -245,7 +245,6 @@ func Start(conn *x.Conn, l *log.Logger, recommendedScaleFactor float64) (*XSMana
 	}
 	m.updateDPI()
 	m.updateXResources()
-	go m.updateFirefoxDPI()
 
 	err = dbus.InstallOnSession(m)
 	if err != nil {
