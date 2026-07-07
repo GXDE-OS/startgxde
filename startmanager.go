@@ -57,6 +57,7 @@ const (
 	gKeyAppsUseProxy       = "apps-use-proxy"
 	gKeyAppsDisableScaling = "apps-disable-scaling"
 	gKeyAppsNoSandbox      = "apps-no-sandbox"
+	gKeyAppsPrimeNvidia    = "apps-prime-nvidia"
 
 	KeyXGnomeAutostartDelay = "X-GNOME-Autostart-Delay"
 	KeyXDeepinCreatedBy     = "X-Deepin-CreatedBy"
@@ -79,6 +80,7 @@ type StartManager struct {
 	settings           *gio.Settings
 	appsUseProxy       strv.Strv
 	appsDisableScaling strv.Strv
+	appsPrimeNvidia    strv.Strv
 	appsNoSandbox      strv.Strv
 	mu                 sync.Mutex
 
@@ -121,6 +123,7 @@ func newStartManager(conn *x.Conn) *StartManager {
 	m.appsUseProxy = strv.Strv(m.settings.GetStrv(gKeyAppsUseProxy))
 	m.appsDisableScaling = strv.Strv(m.settings.GetStrv(gKeyAppsDisableScaling))
 	m.appsNoSandbox = strv.Strv(m.settings.GetStrv(gKeyAppsNoSandbox))
+	m.appsPrimeNvidia = strv.Strv(m.settings.GetStrv(gKeyAppsPrimeNvidia))
 
 	gsettings.ConnectChanged(gSchemaLauncher, "*", func(key string) {
 		switch key {
@@ -135,6 +138,10 @@ func newStartManager(conn *x.Conn) *StartManager {
 		case gKeyAppsNoSandbox:
 			m.mu.Lock()
 			m.appsNoSandbox = strv.Strv(m.settings.GetStrv(key))
+			m.mu.Unlock()
+		case gKeyAppsPrimeNvidia:
+			m.mu.Lock()
+			m.appsPrimeNvidia = strv.Strv(m.settings.GetStrv(key))
 			m.mu.Unlock()
 		default:
 			return
@@ -388,6 +395,16 @@ func (m *StartManager) shouldNoSandbox(id string) bool {
 	return true
 }
 
+func (m *StartManager) shouldPrimeNvidia(id string) bool {
+	m.mu.Lock()
+	if !m.appsPrimeNvidia.Contains(id) {
+		m.mu.Unlock()
+		return false
+	}
+	m.mu.Unlock()
+	return true
+}
+
 func (m *StartManager) shouldUseProxy(id string) bool {
 	m.mu.Lock()
 	if !m.appsUseProxy.Contains(id) {
@@ -476,6 +493,10 @@ func (m *StartManager) launch(appInfo *desktopappinfo.DesktopAppInfo, timestamp 
 			logger.Debug("launch: disable scaling")
 			cmdPrefixes = append(cmdPrefixes, "/usr/bin/env", "GDK_SCALE=1",
 				"QT_SCALE_FACTOR=1")
+		}
+		if m.shouldPrimeNvidia(appId) {
+			logger.Debug("launch: use prime nvidia")
+			cmdPrefixes = append(cmdPrefixes, "/usr/bin/prime-run")
 		}
 		if m.shouldNoSandbox(appId) {
 			logger.Debug("launch: disable sandbox")
