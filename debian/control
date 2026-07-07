@@ -35,7 +35,7 @@ Depends: ${shlibs:Depends},
  libxcursor1,
  lightdm,
  xdg-desktop-portal-gxde
-Recommends: gxde-qt5integration, gxde-qt6integration, gxde-desktop, deepin-prime-run
+Recommends: gxde-qt5integration, gxde-qt6integration, gxde-desktop
 Conflicts: deepin-session, deepin-wm-switcher, startdde (>> 4.0.1-1)
 Breaks: startdde(<= 2.91.1)
 Description: start deepin desktop environment

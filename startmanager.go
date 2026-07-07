@@ -496,7 +496,8 @@ func (m *StartManager) launch(appInfo *desktopappinfo.DesktopAppInfo, timestamp 
 		}
 		if m.shouldPrimeNvidia(appId) {
 			logger.Debug("launch: use prime nvidia")
-			cmdPrefixes = append(cmdPrefixes, "/usr/bin/prime-run")
+			cmdPrefixes = append(cmdPrefixes, "/usr/bin/env", "__NV_PRIME_RENDER_OFFLOAD=1", 
+				"__VK_LAYER_NV_optimus=NVIDIA_only", "__GLX_VENDOR_LIBRARY_NAME=nvidia")
 		}
 		if m.shouldNoSandbox(appId) {
 			logger.Debug("launch: disable sandbox")
