@@ -1,4 +1,4 @@
-startgxde (4.0.12) UNRELEASED; urgency=medium
+startgxde (4.0.13) UNRELEASED; urgency=medium
 
   * 修复控制中心切换启用/禁用特效后重启会丢失设置的问题
   * fix: 修复缩放立即生效的问题 
@@ -26,8 +26,9 @@ startgxde (4.0.12) UNRELEASED; urgency=medium
   * 推荐安装 gxde-qt6integration
   * 支持使用 prime-run 调用 Nvidia 显卡运行应用
   * 移除 deepin-prime 依赖
+  * 设置可选依赖gxde-wlcom
 
- -- gfdgd_xi <3025613752@qq.com>  Tue, 07 Jul 2026 15:57:57 +0800
+ -- gfdgd_xi <3025613752@qq.com>  Thu, 30 Jul 2026 11:20:38 +0800
 
 startgxde (3.18) unstable; urgency=low
 
