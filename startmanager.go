@@ -491,8 +491,8 @@ func (m *StartManager) launch(appInfo *desktopappinfo.DesktopAppInfo, timestamp 
 		}
 		if m.shouldDisableScaling(appId) {
 			logger.Debug("launch: disable scaling")
-			cmdPrefixes = append(cmdPrefixes, "/usr/bin/env", "GDK_SCALE=1",
-				"QT_SCALE_FACTOR=1")
+			cmdPrefixes = append(cmdPrefixes, "/usr/bin/env", "GDK_SCALE=1", "GDK_DPI_SCALE=1", 
+				"QT_SCALE_FACTOR=1", "QT_AUTO_SCREEN_SCALE_FACTOR=0", "QT_FONT_DPI=1")
 		}
 		if m.shouldPrimeNvidia(appId) {
 			logger.Debug("launch: use prime nvidia")
