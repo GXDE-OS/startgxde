@@ -1,5 +1,6 @@
 [Desktop Entry]
-Name=Deepin
-Comment=Deepin Desktop Environment
+Name=GXDE
+Comment=GX Desktop Environment
 Exec=@PREFIX@/bin/startdde
 TryExec=@PREFIX@/bin/startdde
+DesktopNames=GXDE
