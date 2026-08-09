@@ -501,7 +501,7 @@ func (m *StartManager) launch(appInfo *desktopappinfo.DesktopAppInfo, timestamp 
 		}
 		if m.shouldNoSandbox(appId) {
 			logger.Debug("launch: disable sandbox")
-			cmdSuffixes = append(cmdSuffixes, "--no-sandbox")
+			cmdSuffixes = append(cmdPrefixes, "/usr/bin/env", "ELECTRON_DISABLE_SANDBOX=1")
 		}
 	}
 
