@@ -53,11 +53,12 @@ const (
 	autostartDir      = "autostart"
 	proxychainsBinary = "proxychains4"
 
-	gSchemaLauncher        = "com.deepin.dde.launcher"
-	gKeyAppsUseProxy       = "apps-use-proxy"
-	gKeyAppsDisableScaling = "apps-disable-scaling"
-	gKeyAppsNoSandbox      = "apps-no-sandbox"
-	gKeyAppsPrimeNvidia    = "apps-prime-nvidia"
+	gSchemaLauncher                 = "com.deepin.dde.launcher"
+	gKeyAppsUseProxy                = "apps-use-proxy"
+	gKeyAppsDisableScaling          = "apps-disable-scaling"
+	gKeyAppsDisableScalingElectron  = "apps-disable-scaling-electron"
+	gKeyAppsNoSandbox               = "apps-no-sandbox"
+	gKeyAppsPrimeNvidia             = "apps-prime-nvidia"
 
 	KeyXGnomeAutostartDelay = "X-GNOME-Autostart-Delay"
 	KeyXDeepinCreatedBy     = "X-Deepin-CreatedBy"
@@ -76,13 +77,14 @@ type StartManager struct {
 	proxyChainsConfFile string
 	proxyChainsBin      string
 
-	appsDir            []string
-	settings           *gio.Settings
-	appsUseProxy       strv.Strv
-	appsDisableScaling strv.Strv
-	appsPrimeNvidia    strv.Strv
-	appsNoSandbox      strv.Strv
-	mu                 sync.Mutex
+	appsDir                      []string
+	settings                     *gio.Settings
+	appsUseProxy                 strv.Strv
+	appsDisableScaling           strv.Strv
+	appsDisableScalingElectron   strv.Strv
+	appsPrimeNvidia              strv.Strv
+	appsNoSandbox                strv.Strv
+	mu                           sync.Mutex
 
 	launchedHooks []string
 
@@ -122,6 +124,7 @@ func newStartManager(conn *x.Conn) *StartManager {
 
 	m.appsUseProxy = strv.Strv(m.settings.GetStrv(gKeyAppsUseProxy))
 	m.appsDisableScaling = strv.Strv(m.settings.GetStrv(gKeyAppsDisableScaling))
+	m.appsDisableScalingElectron = strv.Strv(m.settings.GetStrv(gKeyAppsDisableScalingElectron))
 	m.appsNoSandbox = strv.Strv(m.settings.GetStrv(gKeyAppsNoSandbox))
 	m.appsPrimeNvidia = strv.Strv(m.settings.GetStrv(gKeyAppsPrimeNvidia))
 
@@ -134,6 +137,10 @@ func newStartManager(conn *x.Conn) *StartManager {
 		case gKeyAppsDisableScaling:
 			m.mu.Lock()
 			m.appsDisableScaling = strv.Strv(m.settings.GetStrv(key))
+			m.mu.Unlock()
+		case gKeyAppsDisableScalingElectron:
+			m.mu.Lock()
+			m.appsDisableScalingElectron = strv.Strv(m.settings.GetStrv(key))
 			m.mu.Unlock()
 		case gKeyAppsNoSandbox:
 			m.mu.Lock()
@@ -434,6 +441,13 @@ func (m *StartManager) shouldDisableScaling(id string) bool {
 	return contains
 }
 
+func (m *StartManager) shouldDisableScalingElectron(id string) bool {
+	m.mu.Lock()
+	contains := m.appsDisableScalingElectron.Contains(id)
+	m.mu.Unlock()
+	return contains
+}
+
 type IStartCommand interface {
 	StartCommand(files []string, ctx *appinfo.AppLaunchContext) (*exec.Cmd, error)
 }
@@ -491,8 +505,12 @@ func (m *StartManager) launch(appInfo *desktopappinfo.DesktopAppInfo, timestamp 
 		}
 		if m.shouldDisableScaling(appId) {
 			logger.Debug("launch: disable scaling")
-			cmdPrefixes = append(cmdPrefixes, "/usr/bin/env", "GDK_SCALE=1",
-				"QT_SCALE_FACTOR=1")
+			cmdPrefixes = append(cmdPrefixes, "/usr/bin/env", "GDK_SCALE=1", "GDK_DPI_SCALE=1", 
+				"QT_SCALE_FACTOR=1", "QT_AUTO_SCREEN_SCALE_FACTOR=0", "QT_FONT_DPI=1")
+		}
+		if m.shouldDisableScalingElectron(appId) {
+			logger.Debug("launch: disable scaling for electron app")
+			cmdSuffixes = append(cmdSuffixes, "--force-device-scale-factor=1")
 		}
 		if m.shouldPrimeNvidia(appId) {
 			logger.Debug("launch: use prime nvidia")
