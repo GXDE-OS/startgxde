@@ -40,6 +40,58 @@ import (
 	"pkg.deepin.io/lib/xdg/basedir"
 )
 
+/*
+#cgo pkg-config: x11
+#include <X11/Xlib.h>
+#include <stdlib.h>
+extern char* get_xresources();
+*/
+import "C"
+
+import (
+	"unsafe"
+)
+
+// isWaylandSession reports whether startdde is running inside a Wayland
+// session (e.g. gxde-wlcom). Under Wayland the global "scale-factor" gsetting
+// is not the right DPI source for Xwayland clients; the compositor opens the
+// Xwayland root at the maximum output scale and publishes the matching
+// Xft.dpi into the X resource database instead.
+func isWaylandSession() bool {
+	return os.Getenv("XDG_SESSION_TYPE") == "wayland"
+}
+
+// getXwaylandScale reads the Xft.dpi published by the Wayland compositor into
+// the X resource database and converts it back to a scale factor
+// (scale = dpi / 96). It returns 0 when the value is unavailable or invalid.
+func getXwaylandScale() float64 {
+	res := C.get_xresources()
+	if res == nil {
+		return 0
+	}
+	data := C.GoString(res)
+	C.free(unsafe.Pointer(res))
+	for _, line := range strings.Split(data, "\n") {
+		line = strings.TrimSpace(line)
+		if !strings.HasPrefix(line, "Xft.dpi:") {
+			continue
+		}
+		line = strings.TrimPrefix(line, "Xft.dpi:")
+		line = strings.TrimSpace(line)
+		var v float64
+		if _, err := fmt.Sscanf(line, "%f", &v); err != nil || v <= 0 {
+			continue
+		}
+		scale := v / 96.0
+		// Guard against absurd values that would make X11 apps unusable.
+		if scale < 1.0 || scale > 4.0 {
+			return 0
+		}
+		return scale
+	}
+	return 0
+}
+
 func (m *XSManager) getScaleFactor() float64 {
 	scale := m.gs.GetDouble(gsKeyScaleFactor)
 	return scale

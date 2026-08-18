@@ -22,7 +22,7 @@ package xsettings
 import (
 	"fmt"
 	"strconv"
-
+	"time"
 )
 
 const (
@@ -37,6 +37,24 @@ func (m *XSManager) updateDPI() {
 	scale := m.gs.GetDouble(gsKeyScaleFactor)
 	if scale <= 0 {
 		scale = 1
+	}
+
+	// Under Wayland the compositor (gxde-wlcom) opens the Xwayland root at the
+	// maximum output scale and writes the matching Xft.dpi into the X resource
+	// database. Use that scale so X11 clients render at the correct size on
+	// fractional-scaled outputs even when the global "scale-factor" gsetting
+	// (used for the integer Wayland path) is still 1.0.
+	//
+	// The compositor may publish Xft.dpi after startdde has started, so when it
+	// is not available yet we retry for a short while instead of keeping the
+	// 1.0 fallback (which would make X11 apps tiny on fractional outputs).
+	if isWaylandSession() {
+		if wscale := getXwaylandScale(); wscale > 0 {
+			scale = wscale
+		} else {
+			m.retryXwaylandDPI()
+			return
+		}
 	}
 
 	var infos []xsSetting
@@ -80,6 +98,30 @@ func (m *XSManager) updateDPI() {
 		}
 		m.updateXResources()
 	}
+}
+
+// retryXwaylandDPI waits for the compositor to publish the Xwayland Xft.dpi
+// into the X resource database and then recomputes the DPI once. It runs in its
+// own goroutine so the synchronous updateDPI() call never blocks startup.
+func (m *XSManager) retryXwaylandDPI() {
+	go func() {
+		const (
+			delay   = 200 * time.Millisecond
+			timeout = 8 * time.Second
+		)
+		deadline := time.Now().Add(timeout)
+		for {
+			time.Sleep(delay)
+			if getXwaylandScale() > 0 {
+				m.updateDPI()
+				return
+			}
+			if time.Now().After(deadline) {
+				logger.Warning("Wayland: Xwayland Xft.dpi still unavailable after timeout, keeping current DPI")
+				return
+			}
+		}
+	}()
 }
 
 func (m *XSManager) updateXResources() {
