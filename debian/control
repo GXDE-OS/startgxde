@@ -33,9 +33,8 @@ Depends: ${shlibs:Depends},
  libgnome-keyring0,
  libxfixes3,
  libxcursor1,
- lightdm,
  xdg-desktop-portal-gxde
-Recommends: gxde-qt5integration, gxde-qt6integration, gxde-desktop
+Recommends: gxde-qt5integration, gxde-qt6integration, gxde-desktop, lightdm
 Conflicts: deepin-session, deepin-wm-switcher, startdde (>> 4.0.1-1)
 Breaks: startdde(<= 2.91.1)
 Description: start deepin desktop environment
