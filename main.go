@@ -78,6 +78,10 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Restart a stale X11-era dbus-daemon before any shared session-bus
+	// connection is established, so Wayland clients don't inherit X11 env.
+	maybeRestartDbusDaemon()
+
 	flag.Parse()
 	initSoundThemePlayer()
 

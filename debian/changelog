@@ -1,4 +1,4 @@
-startgxde (4.0.17) UNRELEASED; urgency=medium
+startgxde (4.0.18) UNRELEASED; urgency=medium
 
   * 修复控制中心切换启用/禁用特效后重启会丢失设置的问题
   * fix: 修复缩放立即生效的问题 
@@ -31,8 +31,9 @@ startgxde (4.0.17) UNRELEASED; urgency=medium
   * 改进禁用屏幕缩放功能，增加对 Electron 应用的支持
   * 修复 GXDE wlcom 不同屏幕不同刷新率 XWayland 应用缩放异常的问题
   * 改为推荐安装 lightdm
+  * 修复 x11 切换到 wayland 部分程序位置和半透明异常的问题
 
- -- gfdgd_xi <3025613752@qq.com>  Mon, 24 Aug 2026 16:34:43 +0800
+ -- gfdgd_xi <3025613752@qq.com>  Fri, 28 Aug 2026 16:46:17 +0800
 
 startgxde (3.18) unstable; urgency=low
 
