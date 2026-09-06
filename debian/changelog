@@ -1,5 +1,6 @@
-startgxde (4.0.18) UNRELEASED; urgency=medium
+startgxde (4.0.18-1) UNRELEASED; urgency=medium
 
+  [ gfdgd_xi ]
   * 修复控制中心切换启用/禁用特效后重启会丢失设置的问题
   * fix: 修复缩放立即生效的问题 
   * 修复 GXDE Wayland 入口无法进入的问题
@@ -33,7 +34,10 @@ startgxde (4.0.18) UNRELEASED; urgency=medium
   * 改为推荐安装 lightdm
   * 修复 x11 切换到 wayland 部分程序位置和半透明异常的问题
 
- -- gfdgd_xi <3025613752@qq.com>  Fri, 28 Aug 2026 16:46:17 +0800
+  [ CharOfString ]
+  * Defer the session compositor dependency until session selection.
+
+ -- CharOfString <root@charofstring.cc>  Sun, 06 Sep 2026 17:18:42 -0500
 
 startgxde (3.18) unstable; urgency=low
 
