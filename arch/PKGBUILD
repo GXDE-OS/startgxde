@@ -1,0 +1,53 @@
+# Maintainer: CharOfString <root@charofstring.cc>
+pkgname=startgxde-git
+pkgver=4.0.18
+pkgrel=1
+pkgdesc='Session manager that starts the GXDE desktop'
+arch=('x86_64' 'aarch64')
+url="https://github.com/GXDE-OS/startgxde"
+license=('GPL-3.0-or-later')
+# libpam-gnome-keyring 在 Arch 中属于 gnome-keyring ・ libpam-gnome-keyring is part of gnome-keyring on Arch.
+depends=('deepin-daemon-git' 'gnome-keyring' 'gvfs' 'gxde-wlcom' 'gxde-desktop-schemas-git'
+         'gxde-api-git' 'libgnome-keyring-git' 'libxfixes' 'libxcursor' 'xdg-desktop-portal-gxde-git'
+         'libpulse' 'alsa-lib' 'glibc')
+optdepends=('gxde-qt5integration-git: GXDE style for Qt5 applications'
+            'gxde-qt6integration-git: GXDE style for Qt6 applications'
+            'lightdm: display manager')
+makedepends=('git' 'go' 'jq' 'golang-gxde-dev-git')
+provides=('startgxde' 'startdde')
+conflicts=('startgxde' 'startdde')
+source=()
+sha512sums=()
+
+# 直接使用 PKGBUILD 所在的 git 仓库作为源码 ・ Build from the git checkout this PKGBUILD lives in.
+_srcroot() {
+  git -C "$startdir" rev-parse --show-toplevel
+}
+
+build() {
+  export CGO_CPPFLAGS="${CPPFLAGS}"
+  export CGO_CFLAGS="${CFLAGS} -std=gnu17"
+  export CGO_CXXFLAGS="${CXXFLAGS}"
+  export CGO_LDFLAGS="${LDFLAGS}"
+  # 仍是 GOPATH 模式，不能使用 -mod ・ Still GOPATH mode, so no -mod flag.
+  export GOFLAGS="-buildmode=pie -trimpath"
+  export GO111MODULE=off
+  export GOCACHE="$srcdir/gocache"
+  make -C "$(_srcroot)"
+}
+
+package() {
+  make -C "$(_srcroot)" DESTDIR="$pkgdir" install
+
+  # Arch 的 /usr/sbin 是指向 /usr/bin 的链接 ・ On Arch /usr/sbin is a symlink to /usr/bin.
+  mv "$pkgdir"/usr/sbin/* "$pkgdir/usr/bin/"
+  rmdir "$pkgdir/usr/sbin"
+
+  # Debian 的 Xsession.d 在 Arch 上不存在；Arch 的 LightDM Xsession 会以同样的参数
+  # 加载 /etc/X11/xinit/xinitrc.d 中可执行的脚本
+  # Debian's Xsession.d does not exist on Arch; Arch's LightDM Xsession sources
+  # the executable scripts in /etc/X11/xinit/xinitrc.d with the same arguments.
+  install -Dm755 "$pkgdir/etc/X11/Xsession.d/00deepin-dde-env" \
+    "$pkgdir/etc/X11/xinit/xinitrc.d/00deepin-dde-env"
+  rm -r "$pkgdir/etc/X11/Xsession.d"
+}
