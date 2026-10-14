@@ -7,7 +7,7 @@ arch=('x86_64' 'aarch64')
 url="https://github.com/GXDE-OS/startgxde"
 license=('GPL-3.0-or-later')
 # libpam-gnome-keyring 在 Arch 中属于 gnome-keyring ・ libpam-gnome-keyring is part of gnome-keyring on Arch.
-depends=('deepin-daemon-git' 'gnome-keyring' 'gvfs' 'gxde-wlcom' 'gxde-desktop-schemas-git'
+depends=('deepin-daemon-git' 'gnome-keyring' 'gvfs' 'flakewm-git' 'gxde-desktop-schemas-git'
          'gxde-api-git' 'libgnome-keyring-git' 'libxfixes' 'libxcursor' 'xdg-desktop-portal-gxde-git'
          'libpulse' 'alsa-lib' 'glibc')
 optdepends=('gxde-qt5integration-git: GXDE style for Qt5 applications'
