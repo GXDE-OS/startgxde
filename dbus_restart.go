@@ -19,6 +19,7 @@ package main
 
 import (
 	"fmt"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -69,7 +70,7 @@ func maybeRestartDbusDaemon() {
 	// Exec= services such as dde-osd).
 	if !isSystemdBus {
 		// dbus-launch-style session bus: replace it directly.
-		pid, err := findSessionDbusDaemonPID()
+		pid, err := findSessionDbusDaemonPID(addr)
 		if err != nil {
 			logger.Warning("failed to locate session dbus-daemon:", err)
 		} else if pid != 0 && isX11EnvDaemon(pid) {
@@ -86,7 +87,7 @@ func maybeRestartDbusDaemon() {
 		// activation state nor the systemd environment -- which is exactly
 		// why dde-osd keeps getting xcb after an X11->Wayland switch. The
 		// only fix is to restart the bus daemon itself through systemd.
-		if pid, err := findSessionDbusDaemonPID(); err == nil && pid != 0 {
+		if pid, err := findSessionDbusDaemonPID(addr); err == nil && pid != 0 {
 			if isX11EnvDaemon(pid) {
 				logger.Info("session bus daemon carries X11 env, " +
 					"restarting dbus.service for the Wayland session")
@@ -139,18 +140,31 @@ func republishWaylandActivationEnv() {
 	}
 }
 
-// findSessionDbusDaemonPID scans /proc for a dbus-daemon process that was
-// started as a session bus (its command line contains "--session") and returns
-// its pid. It returns (0, nil) when none is found.
-func findSessionDbusDaemonPID() (int, error) {
+// findSessionDbusDaemonPID returns the pid of the bus daemon serving addr: the
+// dbus-daemon or dbus-broker process holding the listening socket the address
+// points at. It returns (0, nil) when none is found.
+//
+// Matching any "dbus-daemon --session" is not enough: private buses such as
+// the ones dbus-run-session leaves behind are also session daemons, and one
+// started from an X11 environment would make every login restart (or, for a
+// dbus-launch bus, kill) a bus it has nothing to do with.
+func findSessionDbusDaemonPID(addr string) (int, error) {
+	path := sessionBusSocketPath(addr)
+	if path == "" {
+		return 0, nil
+	}
+
+	sockets, err := listeningUnixSockets(path)
+	if err != nil || len(sockets) == 0 {
+		return 0, err
+	}
+
 	entries, err := os.ReadDir("/proc")
 	if err != nil {
 		return 0, err
 	}
+	broker := 0
 	for _, e := range entries {
-		if !e.IsDir() {
-			continue
-		}
 		pid, err := strconv.Atoi(e.Name())
 		if err != nil {
 			continue
@@ -159,22 +173,86 @@ func findSessionDbusDaemonPID() (int, error) {
 		if err != nil {
 			continue
 		}
-		if strings.TrimSpace(string(comm)) != "dbus-daemon" {
+		name := strings.TrimSpace(string(comm))
+		if name != "dbus-daemon" && !strings.HasPrefix(name, "dbus-broker") {
 			continue
 		}
-		cmdline, err := os.ReadFile(filepath.Join("/proc", e.Name(), "cmdline"))
-		if err != nil {
+		if !holdsSocket(pid, sockets) {
 			continue
 		}
-		// cmdline entries are NUL separated.
-		args := strings.Split(strings.TrimRight(string(cmdline), "\x00"), "\x00")
-		for _, a := range args {
-			if a == "--session" {
-				return pid, nil
+		// dbus-broker-launch (comm is truncated to "dbus-broker-lau") is the
+		// one spawning activated services, prefer it over its dbus-broker child.
+		if name != "dbus-broker" {
+			return pid, nil
+		}
+		broker = pid
+	}
+	return broker, nil
+}
+
+// sessionBusSocketPath returns the socket a D-Bus address connects to, in
+// /proc/net/unix notation: abstract names are prefixed with '@'.
+func sessionBusSocketPath(addr string) string {
+	for _, a := range strings.Split(addr, ";") {
+		if !strings.HasPrefix(a, "unix:") {
+			continue
+		}
+		for _, kv := range strings.Split(strings.TrimPrefix(a, "unix:"), ",") {
+			key, value, ok := strings.Cut(kv, "=")
+			if !ok {
+				continue
+			}
+			if v, err := url.PathUnescape(value); err == nil {
+				value = v
+			}
+			switch key {
+			case "path":
+				return value
+			case "abstract":
+				return "@" + value
 			}
 		}
 	}
-	return 0, nil
+	return ""
+}
+
+// listeningUnixSockets returns the "socket:[inode]" links of the listening
+// unix sockets bound to path.
+func listeningUnixSockets(path string) (map[string]bool, error) {
+	data, err := os.ReadFile("/proc/net/unix")
+	if err != nil {
+		return nil, err
+	}
+	sockets := make(map[string]bool)
+	// Num RefCount Protocol Flags Type St Inode Path
+	for _, line := range strings.Split(string(data), "\n")[1:] {
+		fields := strings.Fields(line)
+		if len(fields) < 8 || fields[7] != path {
+			continue
+		}
+		// __SO_ACCEPTCON is only set on listening sockets.
+		flags, err := strconv.ParseUint(fields[3], 16, 32)
+		if err != nil || flags&0x10000 == 0 {
+			continue
+		}
+		sockets["socket:["+fields[6]+"]"] = true
+	}
+	return sockets, nil
+}
+
+func holdsSocket(pid int, sockets map[string]bool) bool {
+	dir := fmt.Sprintf("/proc/%d/fd", pid)
+	fds, err := os.ReadDir(dir)
+	if err != nil {
+		return false
+	}
+	for _, fd := range fds {
+		link, err := os.Readlink(filepath.Join(dir, fd.Name()))
+		if err == nil && sockets[link] {
+			return true
+		}
+	}
+	return false
 }
 
 // isX11EnvDaemon reports whether the process with the given pid was launched
