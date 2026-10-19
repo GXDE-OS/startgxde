@@ -1,3 +1,7 @@
+startgxde (4.0.19) UNRELEASED; urgency=medium
+  * 修复fd泄露的问题
+ -- CharOfString <root@charofstring.cc>  Sun, 18 Oct 2026 19:07:08 -0500
+
 startgxde (4.0.18) UNRELEASED; urgency=medium
 
   * 修复控制中心切换启用/禁用特效后重启会丢失设置的问题

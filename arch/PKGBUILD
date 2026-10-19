@@ -1,6 +1,6 @@
 # Maintainer: CharOfString <root@charofstring.cc>
 pkgname=startgxde-git
-pkgver=4.0.18
+pkgver=4.0.19
 pkgrel=1
 pkgdesc='Session manager that starts the GXDE desktop'
 arch=('x86_64' 'aarch64')
