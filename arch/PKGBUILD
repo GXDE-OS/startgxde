@@ -1,5 +1,5 @@
 # Maintainer: CharOfString <root@charofstring.cc>
-pkgname=startgxde-git
+pkgname=startgxde
 pkgver=4.0.19
 pkgrel=1
 pkgdesc='Session manager that starts the GXDE desktop'
@@ -7,15 +7,16 @@ arch=('x86_64' 'aarch64')
 url="https://github.com/GXDE-OS/startgxde"
 license=('GPL-3.0-or-later')
 # libpam-gnome-keyring 在 Arch 中属于 gnome-keyring ・ libpam-gnome-keyring is part of gnome-keyring on Arch.
-depends=('deepin-daemon-git' 'gnome-keyring' 'gvfs' 'flakewm-git' 'gxde-desktop-schemas-git'
-         'gxde-api-git' 'libgnome-keyring-git' 'libxfixes' 'libxcursor' 'xdg-desktop-portal-gxde-git'
+depends=('gxde-deepin-daemon' 'gnome-keyring' 'gvfs' 'flakewm' 'gxde-desktop-schemas'
+         'gxde-api' 'libgnome-keyring' 'libxfixes' 'libxcursor' 'xdg-desktop-portal-gxde'
          'libpulse' 'alsa-lib' 'glibc')
-optdepends=('gxde-qt5integration-git: GXDE style for Qt5 applications'
-            'gxde-qt6integration-git: GXDE style for Qt6 applications'
+optdepends=('gxde-qt5integration: GXDE style for Qt5 applications'
+            'gxde-qt6integration: GXDE style for Qt6 applications'
             'lightdm: display manager')
 makedepends=('git' 'go' 'jq' 'golang-gxde-dev-git')
-provides=('startgxde' 'startdde')
-conflicts=('startgxde' 'startdde')
+provides=('startdde' "startgxde-git=$pkgver")
+conflicts=('startdde' 'startgxde-git')
+replaces=('startgxde-git')
 source=()
 sha512sums=()
 
