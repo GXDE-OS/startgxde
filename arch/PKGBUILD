@@ -13,7 +13,7 @@ depends=('gxde-deepin-daemon' 'gnome-keyring' 'gvfs' 'flakewm' 'gxde-desktop-sch
 optdepends=('gxde-qt5integration: GXDE style for Qt5 applications'
             'gxde-qt6integration: GXDE style for Qt6 applications'
             'lightdm: display manager')
-makedepends=('git' 'go' 'jq' 'golang-gxde-dev-git')
+makedepends=('git' 'go' 'jq' 'golang-gxde-dev')
 provides=('startdde' "startgxde-git=$pkgver")
 conflicts=('startdde' 'startgxde-git')
 replaces=('startgxde-git')
