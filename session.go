@@ -34,7 +34,6 @@ import (
 	"github.com/linuxdeepin/go-x11-client"
 	"pkg.deepin.io/dde/api/soundutils"
 	"pkg.deepin.io/dde/startdde/autostop"
-	"pkg.deepin.io/dde/startdde/keyring"
 	"pkg.deepin.io/dde/startdde/memchecker"
 	"pkg.deepin.io/dde/startdde/swapsched"
 	"pkg.deepin.io/dde/startdde/watchdog"
@@ -543,6 +542,24 @@ func setupEnvironments() {
 		}
 	}
 
+	// systemd --user outlives a logout, so its environment still carries what
+	// the previous session imported (e.g. a Hyprland session running
+	// `dbus-update-activation-environment --all` leaves QT_QPA_PLATFORMTHEME=kde
+	// behind). D-Bus/systemd activated GXDE programs such as dde-osd would then
+	// start with another desktop's theme, fonts and cursor. Re-publish the
+	// variables that define the GXDE session from our own environment, and drop
+	// the ones we do not set so a stale foreign value cannot survive.
+	// QT_QPA_PLATFORM is intentionally left to republishWaylandActivationEnv.
+	var staleEnvNames []string
+	for _, envName := range sessionEnvNames {
+		envValue, ok := os.LookupEnv(envName)
+		if ok {
+			envVars[envName] = envValue
+		} else {
+			staleEnvNames = append(staleEnvNames, envName)
+		}
+	}
+
 	sessionBus, err := dbus.SessionBus()
 	if err != nil {
 		logger.Warning(err)
@@ -556,6 +573,31 @@ func setupEnvironments() {
 	if err != nil {
 		logger.Warning(err)
 	}
+
+	// UpdateActivationEnvironment can only set variables, unset the stale ones
+	// in systemd --user directly.
+	if len(staleEnvNames) > 0 {
+		systemdUser := sessionBus.Object("org.freedesktop.systemd1", "/org/freedesktop/systemd1")
+		err = systemdUser.Call("org.freedesktop.systemd1.Manager.UnsetEnvironment",
+			dbus.FlagNoAutoStart, staleEnvNames).Err
+		if err != nil {
+			logger.Warning("failed to unset stale session environment:", err)
+		}
+	}
+}
+
+// sessionEnvNames are the variables that define the GXDE session for the
+// programs it starts (see /etc/profile.d/gxde.sh and the compositor, which
+// exports the active cursor theme). They are re-published into the activation
+// environment on every login.
+var sessionEnvNames = []string{
+	"QT_QPA_PLATFORMTHEME",
+	"XCURSOR_THEME",
+	"XCURSOR_SIZE",
+	"D_DTK_SIZEMODE",
+	"DTK2_XWAYLAND",
+	"DESKTOP_SESSION",
+	"XDG_SESSION_DESKTOP",
 }
 
 func startSession(conn *x.Conn, useKwin bool) *SessionManager {
@@ -586,7 +628,7 @@ func startSession(conn *x.Conn, useKwin bool) *SessionManager {
 	manager.launchDDE()
 	go func() {
 		setLeftPtrCursor()
-		err := keyring.CheckLogin()
+		err := checkLoginKeyring()
 		if err != nil {
 			logger.Warning("Failed to init keyring:", err)
 		}

@@ -68,6 +68,8 @@ func shouldUseDDEKwin() bool {
 }
 
 func main() {
+	runLoginKeyringCheckIfRequested()
+
 	globalGSettingsConfig = getGSettingsConfig()
 	reapZombies()
 
